@@ -24,9 +24,6 @@ on:
   pull_request:
     branches: [main, develop]
 
-permissions:
-  contents: read
-
 jobs:
   review:
     runs-on: ubuntu-latest

@@ -61,8 +61,7 @@ class GitHubClient:
         API Endpoint: POST /repos/{owner}/{repo}/commits/{commit_sha}/comments
         Docs: https://docs.github.com/rest/commits/comments#create-a-commit-comment
         """
-        owner, repo = self.repository.split("/")
-        url = f"{self.api_url}/repos/{owner}/{repo}/commits/{commit_sha}/comments"
+        url = f"{self.api_url}/repos/{self.repository}/commits/{commit_sha}/comments"
 
         response = self.client.post(
             url, json={"body": body}, headers={"Content-Type": "application/json"}
@@ -70,15 +69,6 @@ class GitHubClient:
         response.raise_for_status()
 
         logger.info(f"Successfully posted comment to commit {commit_sha[:7]}")
-        return response.json()
-
-    def get_commit_info(self, commit_sha: str) -> dict:
-        """Get commit information."""
-        owner, repo = self.repository.split("/")
-        url = f"{self.api_url}/repos/{owner}/{repo}/commits/{commit_sha}"
-
-        response = self.client.get(url)
-        response.raise_for_status()
         return response.json()
 
     def close(self):
@@ -90,14 +80,8 @@ class GitHubClient:
 # Git Functions
 # =============================================================================
 
-def get_git_diff(base_ref: str = "HEAD~1") -> tuple[str, str]:
-    """
-    Get git diff and current commit SHA.
-
-    Returns:
-        (diff_output, commit_sha)
-    """
-    # Get current commit SHA
+def get_current_commit_sha() -> str:
+    """Get current commit SHA."""
     sha_result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         capture_output=True,
@@ -105,16 +89,16 @@ def get_git_diff(base_ref: str = "HEAD~1") -> tuple[str, str]:
         encoding="utf-8",
         check=True,
     )
-    commit_sha = sha_result.stdout.strip()
+    return sha_result.stdout.strip()
 
-    # Get diff
-    cmd = ["git", "diff", base_ref, "HEAD", "--", "*.py"]
+
+def get_git_diff(old_commit: str, new_commit: str) -> str:
+    """Get git diff between two commits."""
+    cmd = ["git", "diff", old_commit, new_commit, "--", "*.py"]
     result = subprocess.run(
         cmd, capture_output=True, text=True, encoding="utf-8", check=True
     )
-
-    logger.info(f"Got diff from {base_ref} to {commit_sha[:7]}")
-    return result.stdout, commit_sha
+    return result.stdout
 
 
 # =============================================================================
@@ -148,7 +132,10 @@ def main():
     # =========================================================================
     # 2. Get git diff
     # =========================================================================
-    diff_output, commit_sha = get_git_diff(BASE_REF)
+    commit_sha = get_current_commit_sha()
+    diff_output = get_git_diff(BASE_REF, "HEAD")
+
+    logger.info(f"Got diff from {BASE_REF} to {commit_sha[:7]}")
 
     if not diff_output.strip():
         logger.info("No Python files changed, skipping review")
@@ -200,10 +187,7 @@ def main():
             token=GITHUB_TOKEN, repository=GITHUB_REPOSITORY, api_url=GITHUB_API_URL
         )
 
-        # Use GITHUB_SHA if available, otherwise use from git
-        target_sha = GITHUB_SHA or commit_sha
-
-        github_client.create_commit_comment(commit_sha=target_sha, body=review_result)
+        github_client.create_commit_comment(commit_sha=commit_sha, body=review_result)
         github_client.close()
     else:
         logger.info("Skipping GitHub comment posting (no token/repository)")
