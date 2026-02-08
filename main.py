@@ -1,124 +1,214 @@
-import sys
+import os
 import subprocess
-from dataclasses import dataclass
-from tree_sitter import Language, Parser
-import tree_sitter_go as tsgo
-import tree_sitter_python as tspy
-from unidiff import PatchSet, PatchedFile
-from loguru import logger
+import sys
 from importlib import resources
 
-GO_LANGUAGE = Language(tsgo.language())
-PY_LANGUAGE = Language(tspy.language())
-parser = Parser(PY_LANGUAGE)
+import httpx
+from loguru import logger
+from openai import OpenAI
 
-func_def = {"go": "function_declaration", "py": "function_definition"}
-cls_def = {"go": "type_declaration", "py": "class_definition"}
+# =============================================================================
+# Configuration
+# =============================================================================
+
+# GitHub API Configuration
+GITHUB_API_URL = os.getenv("GITHUB_API_URL", "https://api.github.com")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # owner/repo format
+GITHUB_SHA = os.getenv("GITHUB_SHA")  # Current commit SHA
+
+# OpenRouter Configuration
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-v3.2")
+
+# Git Configuration
+BASE_REF = os.getenv("BASE_REF", "HEAD~1")
+
+# Configure logger
+logger.remove()
+logger.add(
+    sys.stdout,
+    level=os.getenv("LOG_LEVEL", "INFO").upper(),
+    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
+    colorize=True,
+)
 
 
-# Get the git diff output in the curent work dir
-def get_git_diff() -> str:
-    cmd = ["git", "diff", "HEAD~1", "HEAD"]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return result.stdout
+# =============================================================================
+# GitHub API Client
+# =============================================================================
+
+class GitHubClient:
+    """GitHub API client for posting commit comments."""
+
+    def __init__(self, token: str, repository: str, api_url: str = GITHUB_API_URL):
+        self.token = token
+        self.repository = repository
+        self.api_url = api_url
+        self.client = httpx.Client(
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Accept": "application/vnd.github+json",
+                "X-GitHub-Api-Version": "2022-11-28",
+            },
+            timeout=30.0,
+        )
+
+    def create_commit_comment(self, commit_sha: str, body: str) -> dict:
+        """
+        Create a comment for a specific commit.
+
+        API Endpoint: POST /repos/{owner}/{repo}/commits/{commit_sha}/comments
+        Docs: https://docs.github.com/rest/commits/comments#create-a-commit-comment
+        """
+        owner, repo = self.repository.split("/")
+        url = f"{self.api_url}/repos/{owner}/{repo}/commits/{commit_sha}/comments"
+
+        response = self.client.post(
+            url, json={"body": body}, headers={"Content-Type": "application/json"}
+        )
+        response.raise_for_status()
+
+        logger.info(f"Successfully posted comment to commit {commit_sha[:7]}")
+        return response.json()
+
+    def get_commit_info(self, commit_sha: str) -> dict:
+        """Get commit information."""
+        owner, repo = self.repository.split("/")
+        url = f"{self.api_url}/repos/{owner}/{repo}/commits/{commit_sha}"
+
+        response = self.client.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    def close(self):
+        """Close the HTTP client."""
+        self.client.close()
 
 
-# Works on the git repo of current dir
+# =============================================================================
+# Git Functions
+# =============================================================================
+
+def get_git_diff(base_ref: str = "HEAD~1") -> tuple[str, str]:
+    """
+    Get git diff and current commit SHA.
+
+    Returns:
+        (diff_output, commit_sha)
+    """
+    # Get current commit SHA
+    sha_result = subprocess.run(
+        ["git", "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    commit_sha = sha_result.stdout.strip()
+
+    # Get diff
+    cmd = ["git", "diff", base_ref, "HEAD", "--", "*.py"]
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", check=True
+    )
+
+    logger.info(f"Got diff from {base_ref} to {commit_sha[:7]}")
+    return result.stdout, commit_sha
+
+
+# =============================================================================
+# Template Functions
+# =============================================================================
+
 @logger.catch
-def get_full_file_at_commit(commit_ref, file_path):
-    cmd = ["git", "show", f"{commit_ref:file_path}"]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-    return result.stdout
-
-
-@dataclass
-class Function:
-    name: str
-    start: int
-    end: int
-    text: str
-
-
-@dataclass
-class Class:
-    name: str
-    start: int
-    end: int
-    text: str
-
-
-@dataclass
-class Context:
-    function: Function | None = None
-    class_: Class | None = None
-
-
-# Get context from a basic hunk structure
-# Because the lineno is usually provided by git diff,
-# the default index is one
-@logger.catch
-def get_context_from_hunk(
-    source_code: str, start_line: int, end_line: int, is_zero_indexed: bool = False
-) -> Context:
-    tree = parser.parse(bytes(source_code, "utf8"))
-    root_node = tree.root_node
-    if not is_zero_indexed:
-        start_point = (start_line - 1, 0)
-        end_point = (end_line - 1, 0)
-    else:
-        start_point = (start_line, 0)
-        end_point = (end_line, 0)
-    target_node = root_node.descendant_for_point_range(start_point, end_point)
-    current = target_node
-    context = Context()
-    while current:
-        if current.type == func_def["py"]:
-            assert current.text, (
-                "prog internal error: should pass bytes to tree-sitter parser"
-            )
-            context.function = Function(
-                name=_get_node_name(current),
-                start=current.start_point[0] + 1,
-                end=current.end_point[0] + 1,
-                text=current.text.decode(),
-            )
-        elif current.type == cls_def["py"]:
-            assert current.text, (
-                "prog internal error: should pass bytes to tree-sitter parser"
-            )
-            context.class_ = Class(
-                name=_get_node_name(current),
-                start=current.start_point[0] + 1,
-                end=current.end_point[0] + 1,
-                text=current.text.decode(),
-            )
-
-        current = current.parent
-    return context
-
-
-def _get_node_name(node) -> str:
-    for child in node.children:
-        if child.type == "identifier":
-            return child.text.decode("utf-8")
-    return "unknown"
-
-
-@logger.catch
-def load_prompt_resource(name):
-    # 使用 files().joinpath().read_text() 读取内容
+def load_prompt_resource(name: str) -> str:
+    """Load Jinja2 template resource."""
     return resources.files("prompts").joinpath(name).read_text(encoding="utf-8")
 
 
+# =============================================================================
+# Main Entry Point
+# =============================================================================
+
 def main():
+    """Main entry point for the auto reviewer."""
+    logger.info("Auto Code Reviewer starting...")
+
+    # =========================================================================
+    # 1. Validate environment variables
+    # =========================================================================
+    if not OPENROUTER_API_KEY:
+        logger.error("OPENROUTER_API_KEY environment variable is required")
+        raise ValueError("Missing OPENROUTER_API_KEY")
+
+    if not GITHUB_TOKEN:
+        logger.warning("GITHUB_TOKEN not set, will not post comments to GitHub")
+
+    # =========================================================================
+    # 2. Get git diff
+    # =========================================================================
+    diff_output, commit_sha = get_git_diff(BASE_REF)
+
+    if not diff_output.strip():
+        logger.info("No Python files changed, skipping review")
+        return
+
+    # =========================================================================
+    # 3. Render Jinja2 template
+    # =========================================================================
     from jinja2 import Environment, FunctionLoader
 
     env = Environment(loader=FunctionLoader(load_prompt_resource))
-
     template = env.get_template("simple.j2")
-    diff_output = get_git_diff()
     prompt = template.render(diff_content=diff_output)
-    logger.info(prompt)
+
+    logger.debug(f"Generated prompt (length: {len(prompt)})")
+
+    # =========================================================================
+    # 4. Call OpenRouter API
+    # =========================================================================
+    client = OpenAI(
+        base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY
+    )
+
+    logger.info(f"Calling OpenRouter API with model: {OPENROUTER_MODEL}")
+    completion = client.chat.completions.create(
+        model=OPENROUTER_MODEL, messages=[{"role": "user", "content": prompt}]
+    )
+
+    review_result = completion.choices[0].message.content
+
+    if review_result is None:
+        logger.error("LLM returned empty response")
+        raise ValueError("Empty response from LLM")
+
+    logger.info("Got review result from LLM")
+
+    # Output to stdout (GitHub Actions logs)
+    print("\n" + "=" * 80)
+    print("CODE REVIEW RESULT:")
+    print("=" * 80)
+    print(review_result)
+    print("=" * 80 + "\n")
+
+    # =========================================================================
+    # 5. Post to GitHub (if token is available)
+    # =========================================================================
+    if GITHUB_TOKEN and GITHUB_REPOSITORY:
+        github_client = GitHubClient(
+            token=GITHUB_TOKEN, repository=GITHUB_REPOSITORY, api_url=GITHUB_API_URL
+        )
+
+        # Use GITHUB_SHA if available, otherwise use from git
+        target_sha = GITHUB_SHA or commit_sha
+
+        github_client.create_commit_comment(commit_sha=target_sha, body=review_result)
+        github_client.close()
+    else:
+        logger.info("Skipping GitHub comment posting (no token/repository)")
+
+    logger.info("Auto Code Reviewer completed successfully")
 
 
 if __name__ == "__main__":
