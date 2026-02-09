@@ -27,32 +27,38 @@ on:
 jobs:
   review:
     runs-on: ubuntu-latest
+    permissions: # this is essential for posting comments
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
 
-      - uses: your-username/auto_reviewer@v1
+      - uses: Adamska1008/auto-reviewer@v1
         with:
-          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          api_key: ${{ secrets.AUTO_REVIEWER_API_KEY }}
+          base_url: <YOUR_BASE_URL> # default openai
+          model: <YOUR_MODEL> # default gpt-4.1
 ```
 
 ### Setup
 
-1. Add your OpenRouter API key to repository secrets:
+1. Add your LLM API key and base URL to repository secrets:
    - Go to Settings → Secrets and variables → Actions
-   - Create a new secret named `OPENROUTER_API_KEY`
+   - Create secrets named `AUTO_REVIEWER_API_KEY` and `AUTO_REVIEWER_BASE_URL`
 
 2. Add the workflow file to `.github/workflows/`
 
 ## Inputs
 
-| Input | Required | Default | Description |
-|-------|----------|---------|-------------|
-| `openrouter_api_key` | Yes | - | Your OpenRouter API key |
-| `github_token` | No | `${{ github.token }}` | GitHub token for posting comments |
-| `base_ref` | No | `HEAD~1` | Base reference for diff |
-| `model` | No | `deepseek/deepseek-v3.2` | OpenRouter model to use |
+| Input          | Required | Default               | Description                       |
+| -------------- | -------- | --------------------- | --------------------------------- |
+| `api_key`      | Yes      | -                     | Your LLM API key                  |
+| `base_url`     | Yes      | -                     | LLM API base URL                  |
+| `model`        | No       | `gpt-4.1`             | LLM model to use                  |
+| `github_token` | No       | `${{ github.token }}` | GitHub token for posting comments |
+| `base_ref`     | No       | `HEAD~1`              | Base reference for diff           |
 
 ## Development
 
@@ -64,10 +70,10 @@ docker build -t auto-reviewer .
 
 # Run locally (requires environment variables)
 docker run --rm \
-  -e OPENROUTER_API_KEY=your_key \
+  -e AUTO_REVIEWER_API_KEY=your_key \
+  -e AUTO_REVIEWER_BASE_URL=https://api.openai.com/v1 \
   -e GITHUB_TOKEN=ghp_xxx \
   -e GITHUB_REPOSITORY=owner/repo \
-  -e GITHUB_SHA=abc123 \
   auto-reviewer
 ```
 

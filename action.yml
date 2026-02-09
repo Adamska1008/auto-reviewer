@@ -2,21 +2,20 @@ name: "Auto Code Reviewer"
 description: "Automatically review code changes using LLM and post comments to commits"
 
 inputs:
-  openrouter_api_key:
-    description: "Your OpenRouter API Key"
+  api_key:
+    description: "Your LLM API Key"
     required: true
+  base_url:
+    description: "LLM API base URL (e.g., https://api.openai.com/v1)"
+    required: true
+  model:
+    description: "LLM model to use"
+    required: false
+    default: "gpt-4.1"
   github_token:
     description: "GitHub token for posting comments (default: GITHUB_TOKEN)"
     required: false
     default: ${{ github.token }}
-  base_ref:
-    description: "Base reference for diff (default: HEAD~1)"
-    required: false
-    default: "HEAD~1"
-  openrouter_model:
-    description: "OpenRouter model to use"
-    required: false
-    default: "deepseek/deepseek-v3.2"
 
 outputs:
   review_result:

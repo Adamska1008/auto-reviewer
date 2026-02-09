@@ -16,9 +16,10 @@ GITHUB_API_URL = "https://api.github.com"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # owner/repo format
 
-# OpenRouter Configuration
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = "deepseek/deepseek-v3.2"
+# Auto Reviewer Configuration
+AUTO_REVIEWER_API_KEY = os.getenv("AUTO_REVIEWER_API_KEY")
+AUTO_REVIEWER_BASE_URL = os.getenv("AUTO_REVIEWER_BASE_URL")
+AUTO_REVIEWER_MODEL = os.getenv("AUTO_REVIEWER_MODEL", "gpt-4.1")
 
 # Configure logger
 logger.remove()
@@ -147,9 +148,9 @@ def main():
     # =========================================================================
     # 1. Validate environment variables
     # =========================================================================
-    if not OPENROUTER_API_KEY:
-        logger.error("OPENROUTER_API_KEY environment variable is required")
-        raise ValueError("Missing OPENROUTER_API_KEY")
+    if not AUTO_REVIEWER_API_KEY:
+        logger.error("AUTO_REVIEWER_API_KEY environment variable is required")
+        raise ValueError("Missing AUTO_REVIEWER_API_KEY")
 
     if not GITHUB_TOKEN:
         logger.warning("GITHUB_TOKEN not set, will not post comments to GitHub")
@@ -190,11 +191,11 @@ def main():
     # =========================================================================
     # 4. Call OpenRouter API
     # =========================================================================
-    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY)
+    client = OpenAI(base_url=AUTO_REVIEWER_BASE_URL, api_key=AUTO_REVIEWER_API_KEY)
 
-    logger.info(f"Calling OpenRouter API with model: {OPENROUTER_MODEL}")
+    logger.info(f"Calling OpenRouter API with model: {AUTO_REVIEWER_MODEL}")
     completion = client.chat.completions.create(
-        model=OPENROUTER_MODEL, messages=[{"role": "user", "content": prompt}]
+        model=AUTO_REVIEWER_MODEL, messages=[{"role": "user", "content": prompt}]
     )
 
     review_result = completion.choices[0].message.content

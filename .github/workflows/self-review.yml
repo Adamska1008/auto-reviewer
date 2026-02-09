@@ -17,6 +17,8 @@ jobs:
         with:
           fetch-depth: 2
 
-      - uses: ./
+      - uses: Adamska1008/auto-reviewer@master
         with:
-          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
+          api_key: ${{ secrets.AUTO_REVIEWER_API_KEY }}
+          base_url: "https://openrouter.ai/api/v1"
+          model: "deepseek/deepseek-v3.2"
