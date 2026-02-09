@@ -1,20 +1,26 @@
 FROM ghcr.io/astral-sh/uv:python3.12-bookworm-slim
 
-WORKDIR /app
+# Install git (required for getting diff and commit info)
+RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
-# Copy dependency files first (for better Docker caching)
-COPY pyproject.toml uv.lock ./
+# Set working directory for build
+WORKDIR /build
 
-# Install dependencies
-RUN uv sync --frozen --no-dev
-
-# Copy application code
+# Copy project files
+COPY pyproject.toml uv.lock README.md ./
 COPY main.py .
 COPY prompts ./prompts/
 
+# Build and install the package
+RUN uv tool install .
+
+# Copy entrypoint script to root
+COPY entrypoint.sh /
+
 # Environment variables
 ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH=/build
 ENV GITHUB_API_URL=https://api.github.com
 
-# Set entrypoint
-ENTRYPOINT ["uv", "run", "main.py"]
+# Set entrypoint (use bash explicitly to avoid permission issues)
+ENTRYPOINT ["bash", "/entrypoint.sh"]

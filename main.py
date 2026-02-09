@@ -12,17 +12,13 @@ from openai import OpenAI
 # =============================================================================
 
 # GitHub API Configuration
-GITHUB_API_URL = os.getenv("GITHUB_API_URL", "https://api.github.com")
+GITHUB_API_URL = "https://api.github.com"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # owner/repo format
-GITHUB_SHA = os.getenv("GITHUB_SHA")  # Current commit SHA
 
 # OpenRouter Configuration
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "deepseek/deepseek-v3.2")
-
-# Git Configuration
-BASE_REF = os.getenv("BASE_REF", "HEAD~1")
+OPENROUTER_MODEL = "deepseek/deepseek-v3.2"
 
 # Configure logger
 logger.remove()
@@ -37,6 +33,7 @@ logger.add(
 # =============================================================================
 # GitHub API Client
 # =============================================================================
+
 
 class GitHubClient:
     """GitHub API client for posting commit comments."""
@@ -80,8 +77,10 @@ class GitHubClient:
 # Git Functions
 # =============================================================================
 
+
 def get_current_commit_sha() -> str:
     """Get current commit SHA."""
+    logger.debug(f"Running git in directory: {os.getcwd()}")
     sha_result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         capture_output=True,
@@ -93,17 +92,42 @@ def get_current_commit_sha() -> str:
 
 
 def get_git_diff(old_commit: str, new_commit: str) -> str:
-    """Get git diff between two commits."""
-    cmd = ["git", "diff", old_commit, new_commit, "--", "*.py"]
+    """Get git diff between two commits with extended context."""
+    cmd = ["git", "diff", "-U10", old_commit, new_commit, "--", "*.py"]
     result = subprocess.run(
         cmd, capture_output=True, text=True, encoding="utf-8", check=True
     )
     return result.stdout
 
 
+def get_commit_message(sha: str) -> str:
+    """Get commit message."""
+    result = subprocess.run(
+        ["git", "log", "-1", "--pretty=%B", sha],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    return result.stdout.strip()
+
+
+def get_commit_author(sha: str) -> str:
+    """Get commit author."""
+    result = subprocess.run(
+        ["git", "log", "-1", "--pretty=%an", sha],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        check=True,
+    )
+    return result.stdout.strip()
+
+
 # =============================================================================
 # Template Functions
 # =============================================================================
+
 
 @logger.catch
 def load_prompt_resource(name: str) -> str:
@@ -114,6 +138,7 @@ def load_prompt_resource(name: str) -> str:
 # =============================================================================
 # Main Entry Point
 # =============================================================================
+
 
 def main():
     """Main entry point for the auto reviewer."""
@@ -130,12 +155,14 @@ def main():
         logger.warning("GITHUB_TOKEN not set, will not post comments to GitHub")
 
     # =========================================================================
-    # 2. Get git diff
+    # 2. Get git diff and commit metadata
     # =========================================================================
     commit_sha = get_current_commit_sha()
-    diff_output = get_git_diff(BASE_REF, "HEAD")
+    diff_output = get_git_diff("HEAD~1", "HEAD")
+    commit_msg = get_commit_message(commit_sha)
+    commit_author = get_commit_author(commit_sha)
 
-    logger.info(f"Got diff from {BASE_REF} to {commit_sha[:7]}")
+    logger.info(f"Got diff from {'HEAD~1'} to {commit_sha[:7]} by {commit_author}")
 
     if not diff_output.strip():
         logger.info("No Python files changed, skipping review")
@@ -148,16 +175,22 @@ def main():
 
     env = Environment(loader=FunctionLoader(load_prompt_resource))
     template = env.get_template("simple.j2")
-    prompt = template.render(diff_content=diff_output)
+    prompt = template.render(
+        diff_content=diff_output,
+        commit_sha=commit_sha[:7],
+        commit_author=commit_author,
+        commit_message=commit_msg,
+    )
+    # use a simple technique in paper: Prompt Repetition Improves Non-Reasoning LLMs
+    prompt += prompt
 
     logger.debug(f"Generated prompt (length: {len(prompt)})")
+    logger.debug(f"Prompt message: {prompt[:1000]}...")
 
     # =========================================================================
     # 4. Call OpenRouter API
     # =========================================================================
-    client = OpenAI(
-        base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY
-    )
+    client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY)
 
     logger.info(f"Calling OpenRouter API with model: {OPENROUTER_MODEL}")
     completion = client.chat.completions.create(

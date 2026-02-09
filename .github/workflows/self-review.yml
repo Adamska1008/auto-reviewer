@@ -1,0 +1,22 @@
+name: Self Code Review
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+    branches: [main, master, develop]
+
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: ./
+        with:
+          openrouter_api_key: ${{ secrets.OPENROUTER_API_KEY }}
