@@ -8,8 +8,7 @@ WORKDIR /build
 
 # Copy project files
 COPY pyproject.toml uv.lock README.md ./
-COPY main.py .
-COPY prompts ./prompts/
+COPY auto_reviewer ./auto_reviewer/
 
 # Build and install the package
 RUN uv tool install .

@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-auto-reviewer = "main:main"
+auto-reviewer = "auto_reviewer.main:main"
 
 [build-system]
 requires = ["hatchling"]
