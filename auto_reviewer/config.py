@@ -11,6 +11,7 @@ GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # owner/repo format
 AUTO_REVIEWER_API_KEY = os.getenv("AUTO_REVIEWER_API_KEY")
 AUTO_REVIEWER_BASE_URL = os.getenv("AUTO_REVIEWER_BASE_URL")
 AUTO_REVIEWER_MODEL = os.getenv("AUTO_REVIEWER_MODEL", "gpt-4.1")
+AUTO_REVIEWER_LANGUAGE = os.getenv("AUTO_REVIEWER_LANGUAGE", "Chinese")
 
 # Which file to track
 _raw_patterns = os.getenv("AUTO_REVIEWER_FILE_PATTERNS", "*.py")

@@ -19,6 +19,7 @@ def render_prompt(
     commit_sha: str,
     commit_author: str,
     commit_message: str,
+    language: str,
 ) -> str:
     """
     Render prompt template with given context.
@@ -29,6 +30,7 @@ def render_prompt(
         commit_sha: Short commit SHA
         commit_author: Author of the commit
         commit_message: Commit message
+        language: Output language for review
 
     Returns:
         Rendered prompt with prompt repetition applied
@@ -40,6 +42,7 @@ def render_prompt(
         commit_sha=commit_sha,
         commit_author=commit_author,
         commit_message=commit_message,
+        language=language,
     )
     # Use technique from paper: Prompt Repetition Improves Non-Reasoning LLMs
     prompt += prompt

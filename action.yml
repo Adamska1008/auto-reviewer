@@ -7,7 +7,7 @@ inputs:
     required: true
   base_url:
     description: "LLM API base URL (e.g., https://api.openai.com/v1)"
-    required: true
+    required: false
   model:
     description: "LLM model to use"
     required: false
@@ -16,6 +16,10 @@ inputs:
     description: "File patterns to review (comma-separated, e.g., *.py,*.js)"
     required: false
     default: "*.py"
+  language:
+    description: "Output language for review (e.g., Chinese, English)"
+    required: false
+    default: "Chinese"
   github_token:
     description: "GitHub token for posting comments (default: GITHUB_TOKEN)"
     required: false
@@ -33,4 +37,5 @@ runs:
     AUTO_REVIEWER_BASE_URL: ${{ inputs.base_url }}
     AUTO_REVIEWER_MODEL: ${{ inputs.model }}
     AUTO_REVIEWER_FILE_PATTERNS: ${{ inputs.file_patterns }}
+    AUTO_REVIEWER_LANGUAGE: ${{ inputs.language }}
     GITHUB_TOKEN: ${{ inputs.github_token }}

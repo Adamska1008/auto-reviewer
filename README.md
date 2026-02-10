@@ -35,12 +35,13 @@ jobs:
         with:
           fetch-depth: 2
 
-      - uses: Adamska1008/auto-reviewer@v1
+      - uses: Adamska1008/auto-reviewer@preview
         with:
           api_key: ${{ secrets.AUTO_REVIEWER_API_KEY }}
           base_url: <YOUR_BASE_URL> # optional, default is https://api.openai.com/v1
           model: <YOUR_MODEL>       # optional, default is gpt-4.1
           file_patterns: "*.py,*.js,*.ts" # optional, default is *.py
+          language: English # optional, default is Chinese
 ```
 
 ### Setup
@@ -56,11 +57,11 @@ jobs:
 | Input           | Required | Default               | Description                         |
 | --------------- | -------- | --------------------- | ----------------------------------- |
 | `api_key`       | Yes      | -                     | Your LLM API key                    |
-| `base_url`      | Yes      | -                     | LLM API base URL                    |
+| `base_url`      | No       | -                     | LLM API base URL                    |
 | `model`         | No       | `gpt-4.1`             | LLM model to use                    |
 | `file_patterns` | No       | `*.py`                | File patterns to review (comma-separated) |
+| `language`      | No       | `Chinese`             | Output language for review          |
 | `github_token`  | No       | `${{ github.token }}` | GitHub token for posting comments   |
-| `base_ref`      | No       | `HEAD~1`              | Base reference for diff            |
 
 ## Development
 
@@ -75,6 +76,7 @@ docker run --rm \
   -e AUTO_REVIEWER_API_KEY=your_key \
   -e AUTO_REVIEWER_BASE_URL=https://api.openai.com/v1 \
   -e AUTO_REVIEWER_FILE_PATTERNS="*.py,*.js" \
+  -e AUTO_REVIEWER_LANGUAGE=English \
   -e GITHUB_TOKEN=ghp_xxx \
   -e GITHUB_REPOSITORY=owner/repo \
   auto-reviewer

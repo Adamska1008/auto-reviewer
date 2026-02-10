@@ -52,6 +52,7 @@ def main():
         commit_sha=commit_sha[:7],
         commit_author=commit_author,
         commit_message=commit_msg,
+        language=config.AUTO_REVIEWER_LANGUAGE,
     )
 
     # =========================================================================
