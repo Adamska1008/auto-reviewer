@@ -18,6 +18,7 @@ FILE_PATTERNS = [pattern.strip() for pattern in _raw_patterns.split(",")]
 
 
 def setup_logging():
+    """Configure loguru logger. Should be called explicitly by main program."""
     logger.remove()
     logger.add(
         sys.stdout,
@@ -25,6 +26,3 @@ def setup_logging():
         format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <level>{message}</level>",
         colorize=True,
     )
-
-
-setup_logging()

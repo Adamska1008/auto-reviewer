@@ -13,9 +13,6 @@ def load_prompt_resource(name: str) -> str:
     )
 
 
-ENV = Environment(loader=FunctionLoader(load_prompt_resource))
-
-
 def render_prompt(
     template_name: str,
     diff_content: str,
@@ -36,7 +33,8 @@ def render_prompt(
     Returns:
         Rendered prompt with prompt repetition applied
     """
-    template = ENV.get_template(template_name)
+    env = Environment(loader=FunctionLoader(load_prompt_resource))
+    template = env.get_template(template_name)
     prompt = template.render(
         diff_content=diff_content,
         commit_sha=commit_sha,

@@ -1,10 +1,10 @@
 # Auto Code Reviewer
 
-Automatically review your Python code changes using LLM and post comments to commits.
+Automatically review your code changes using LLM and post comments to commits.
 
 ## Features
 
-- Uses DeepSeek V3.2 via OpenRouter for intelligent code reviews
+- Supports any LLM provider (OpenAI, OpenRouter, etc.)
 - Posts review comments directly to commits
 - Docker-based GitHub Action
 - Fast and lightweight
@@ -87,7 +87,7 @@ docker run --rm \
 uv sync
 
 # Run the script
-uv run main.py
+uv run auto-reviewer
 ```
 
 ## License

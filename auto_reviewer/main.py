@@ -16,6 +16,7 @@ from auto_reviewer.template import render_prompt
 
 def main():
     """Main entry point for the auto reviewer."""
+    config.setup_logging()
     logger.info("Auto Code Reviewer starting...")
 
     # =========================================================================

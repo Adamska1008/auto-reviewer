@@ -28,3 +28,9 @@ outputs:
 runs:
   using: "docker"
   image: "Dockerfile"
+  env:
+    AUTO_REVIEWER_API_KEY: ${{ inputs.api_key }}
+    AUTO_REVIEWER_BASE_URL: ${{ inputs.base_url }}
+    AUTO_REVIEWER_MODEL: ${{ inputs.model }}
+    AUTO_REVIEWER_FILE_PATTERNS: ${{ inputs.file_patterns }}
+    GITHUB_TOKEN: ${{ inputs.github_token }}
