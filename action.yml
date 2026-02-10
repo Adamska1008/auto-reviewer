@@ -12,6 +12,10 @@ inputs:
     description: "LLM model to use"
     required: false
     default: "gpt-4.1"
+  file_patterns:
+    description: "File patterns to review (comma-separated, e.g., *.py,*.js)"
+    required: false
+    default: "*.py"
   github_token:
     description: "GitHub token for posting comments (default: GITHUB_TOKEN)"
     required: false

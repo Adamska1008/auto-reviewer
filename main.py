@@ -6,6 +6,7 @@ from importlib import resources
 import httpx
 from loguru import logger
 from openai import OpenAI
+from jinja2 import Environment, FunctionLoader
 
 # =============================================================================
 # Configuration
@@ -20,6 +21,10 @@ GITHUB_REPOSITORY = os.getenv("GITHUB_REPOSITORY")  # owner/repo format
 AUTO_REVIEWER_API_KEY = os.getenv("AUTO_REVIEWER_API_KEY")
 AUTO_REVIEWER_BASE_URL = os.getenv("AUTO_REVIEWER_BASE_URL")
 AUTO_REVIEWER_MODEL = os.getenv("AUTO_REVIEWER_MODEL", "gpt-4.1")
+
+# Which file to track
+FILE_PATTERNS = os.getenv("AUTO_REVIEWER_FILE_PATTERNS", "*.py")
+FILE_PATTERNS = [pattern.strip() for pattern in FILE_PATTERNS.split(",")]
 
 # Configure logger
 logger.remove()
@@ -94,7 +99,7 @@ def get_current_commit_sha() -> str:
 
 def get_git_diff(old_commit: str, new_commit: str) -> str:
     """Get git diff between two commits with extended context."""
-    cmd = ["git", "diff", "-U10", old_commit, new_commit, "--", "*.py"]
+    cmd = ["git", "diff", "-U10", old_commit, new_commit, "--", *FILE_PATTERNS]
     result = subprocess.run(
         cmd, capture_output=True, text=True, encoding="utf-8", check=True
     )
@@ -136,6 +141,8 @@ def load_prompt_resource(name: str) -> str:
     return resources.files("prompts").joinpath(name).read_text(encoding="utf-8")
 
 
+ENV = Environment(loader=FunctionLoader(load_prompt_resource))
+
 # =============================================================================
 # Main Entry Point
 # =============================================================================
@@ -172,10 +179,8 @@ def main():
     # =========================================================================
     # 3. Render Jinja2 template
     # =========================================================================
-    from jinja2 import Environment, FunctionLoader
 
-    env = Environment(loader=FunctionLoader(load_prompt_resource))
-    template = env.get_template("simple.j2")
+    template = ENV.get_template("simple.j2")
     prompt = template.render(
         diff_content=diff_output,
         commit_sha=commit_sha[:7],
