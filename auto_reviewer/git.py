@@ -54,7 +54,7 @@ def get_commit_author(sha: str) -> str:
 
 
 def has_parent_commit(sha: str) -> bool:
-    """Check if commit has a parent (i.e., not the initial commit)."""
+    """Check if commit has a parent (i.e., not an initial commit)."""
     try:
         subprocess.run(
             ["git", "rev-parse", f"{sha}^@"],
@@ -62,7 +62,6 @@ def has_parent_commit(sha: str) -> bool:
             text=True,
             encoding="utf-8",
             check=True,
-            stderr=subprocess.DEVNULL,
         )
         return True
     except subprocess.CalledProcessError:
