@@ -9,6 +9,8 @@ from auto_reviewer.git import (
     get_commit_message,
     get_current_commit_sha,
     get_git_diff,
+    get_initial_commit_diff,
+    has_parent_commit,
 )
 from auto_reviewer.llm import call_llm
 from auto_reviewer.template import render_prompt
@@ -33,11 +35,16 @@ def main():
     # 2. Get git diff and commit metadata
     # =========================================================================
     commit_sha = get_current_commit_sha()
-    diff_output = get_git_diff("HEAD~1", "HEAD")
     commit_msg = get_commit_message(commit_sha)
     commit_author = get_commit_author(commit_sha)
 
-    logger.info(f"Got diff from HEAD~1 to {commit_sha[:7]} by {commit_author}")
+    # Check if this is the initial commit (no parent)
+    if has_parent_commit(commit_sha):
+        diff_output = get_git_diff("HEAD~1", "HEAD")
+        logger.info(f"Got diff from HEAD~1 to {commit_sha[:7]} by {commit_author}")
+    else:
+        diff_output = get_initial_commit_diff()
+        logger.info(f"Got diff for initial commit {commit_sha[:7]} by {commit_author}")
 
     if not diff_output.strip():
         logger.info("No tracked files changed, skipping review")

@@ -51,3 +51,28 @@ def get_commit_author(sha: str) -> str:
         check=True,
     )
     return result.stdout.strip()
+
+
+def has_parent_commit(sha: str) -> bool:
+    """Check if commit has a parent (i.e., not the initial commit)."""
+    try:
+        subprocess.run(
+            ["git", "rev-parse", f"{sha}^@"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            check=True,
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+def get_initial_commit_diff() -> str:
+    """Get diff for initial commit (all files in the commit)."""
+    cmd = ["git", "diff", "-U10", "4b8a25e1", "HEAD", "--", *config.FILE_PATTERNS]
+    result = subprocess.run(
+        cmd, capture_output=True, text=True, encoding="utf-8", check=True
+    )
+    return result.stdout
