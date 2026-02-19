@@ -1,0 +1,4 @@
+Features:
+  ☐ Implement Tree-sitter-based code extraction
+  ☐ Implement LSP-based code extraction
+  ☐ Integrate with linter tools
