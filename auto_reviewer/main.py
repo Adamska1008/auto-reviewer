@@ -3,6 +3,9 @@
 from loguru import logger
 from unidiff import PatchSet
 
+import tree_sitter as ts
+import tree_sitter_python as tspython
+
 from auto_reviewer import config
 from auto_reviewer.github import GitHubClient
 from auto_reviewer.git import (
@@ -14,6 +17,10 @@ from auto_reviewer.git import (
 )
 from auto_reviewer.llm import call_llm
 from auto_reviewer.template import render_prompt
+
+PY_LANGUAGAE = ts.Language(tspython.language())
+parser = ts.Parser(language=PY_LANGUAGAE)
+
 
 def get_added_line_number_from_diff(diff_text: str) -> dict[str, list[int]]:
     patch = PatchSet(diff_text)
@@ -30,6 +37,41 @@ def get_added_line_number_from_diff(diff_text: str) -> dict[str, list[int]]:
         if linenos:
             results[file.path] = linenos
     return results
+
+
+MAX_LINE_WIDTH = 200
+
+
+def analyze_added_code(file_path: str, added_lineno: list[int]):
+    with open(file_path, "rb") as f:
+        code_bytes = f.read()
+    tree = parser.parse(code_bytes)
+    root_node = tree.root_node
+
+    results = []
+    for lineno in added_lineno:
+        target_line = lineno - 1
+        node = root_node.descendant_for_point_range(
+            (target_line, 0), (target_line, MAX_LINE_WIDTH)
+        )
+        assert node is not None
+        node_info = {
+            "line": lineno,
+            "type": node.type,
+            "text": node.text.decode("utf-8") if node.text else "",
+            "parent_scope": find_parent_scope(node),
+        }
+        results.append(node_info)
+    return results
+
+
+def find_parent_scope(node: ts.Node) -> ts.Node | None:
+    current = node
+    while current:
+        if current.type in ["function_definition", "class_definition"]:
+            return current
+        current = current.parent
+    return None
 
 
 def main():
