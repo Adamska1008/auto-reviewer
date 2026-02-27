@@ -17,6 +17,9 @@ AUTO_REVIEWER_LANGUAGE = os.getenv("AUTO_REVIEWER_LANGUAGE", "Chinese")
 _raw_patterns = os.getenv("AUTO_REVIEWER_FILE_PATTERNS", "*.py")
 FILE_PATTERNS = [pattern.strip() for pattern in _raw_patterns.split(",")]
 
+# Push Configuration
+PUSH_COMMITS_COUNT = int(os.getenv("PUSH_COMMITS_COUNT", "1"))
+
 
 def setup_logging():
     """Configure loguru logger. Should be called explicitly by main program."""

@@ -6,6 +6,7 @@ Automatically review your code changes using LLM and post comments to commits.
 
 - Supports any LLM provider (OpenAI, OpenRouter, etc.)
 - Posts review comments directly to commits
+- Automatically handles multiple commits in a single push
 - Docker-based GitHub Action
 - Fast and lightweight
 
@@ -54,14 +55,15 @@ jobs:
 
 ## Inputs
 
-| Input           | Required | Default               | Description                         |
-| --------------- | -------- | --------------------- | ----------------------------------- |
-| `api_key`       | Yes      | -                     | Your LLM API key                    |
-| `base_url`      | No       | -                     | LLM API base URL                    |
-| `model`         | No       | `gpt-4.1`             | LLM model to use                    |
-| `file_patterns` | No       | `*.py`                | File patterns to review (comma-separated) |
-| `language`      | No       | `Chinese`             | Output language for review          |
-| `github_token`  | No       | `${{ github.token }}` | GitHub token for posting comments   |
+| Input               | Required | Default                     | Description                                          |
+| ------------------- | -------- | --------------------------- | ---------------------------------------------------- |
+| `api_key`           | Yes      | -                           | Your LLM API key                                     |
+| `base_url`          | No       | -                           | LLM API base URL                                     |
+| `model`             | No       | `gpt-4.1`                   | LLM model to use                                     |
+| `file_patterns`     | No       | `*.py`                      | File patterns to review (comma-separated)            |
+| `language`          | No       | `Chinese`                   | Output language for review                           |
+| `github_token`      | No       | `${{ github.token }}`       | GitHub token for posting comments                    |
+| `push_commits_count` | No       | Auto-detected from push event | Number of commits in this push (automatically detected) |
 
 ## Development
 
