@@ -1,6 +1,7 @@
 """Auto Code Reviewer - Main entry point."""
 
 from loguru import logger
+from unidiff import PatchSet
 
 from auto_reviewer import config
 from auto_reviewer.github import GitHubClient
@@ -13,6 +14,22 @@ from auto_reviewer.git import (
 )
 from auto_reviewer.llm import call_llm
 from auto_reviewer.template import render_prompt
+
+def get_added_line_number_from_diff(diff_text: str) -> dict[str, list[int]]:
+    patch = PatchSet(diff_text)
+    results = {}  # result is a dict of {<FILENAME>: [LINE NUMBER ARRAY]}
+    for file in patch:
+        linenos = []
+        for hunk in file:
+            current_line_no = hunk.target_start
+            for line in hunk:
+                if line.is_added:
+                    linenos.append(current_line_no)
+                if not line.is_removed:
+                    current_line_no += 1
+        if linenos:
+            results[file.path] = linenos
+    return results
 
 
 def main():
@@ -50,6 +67,10 @@ def main():
     if not diff_output.strip():
         logger.info("No tracked files changed, skipping review")
         return
+
+    # ====================================
+    # 2. Get lineno of each hunk
+    # ====================================
 
     # =========================================================================
     # 3. Render Jinja2 template

@@ -47,14 +47,17 @@ def get_current_commit_sha() -> str:
     return sha.strip()
 
 
-def get_git_diff(new_commit: str, old_commit: str | None = None) -> str:
+def get_git_diff(
+    new_commit: str, old_commit: str | None = None, context: str = "-U0"
+) -> str:
     """
     Get git diff between two commits with extended context.
     If arg `old_commit`, set old_commit hash to root hash.
+    The `context` is something like `-U10` that give to git cli.
     """
     if old_commit is None:
         old_commit = ROOT_HASH
-    cmd = ["git", "diff", "-U10", old_commit, new_commit, "--", *config.FILE_PATTERNS]
+    cmd = ["git", "diff", context, old_commit, new_commit, "--", *config.FILE_PATTERNS]
     return try_execute_command(*cmd)
 
 
