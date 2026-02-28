@@ -1,7 +1,8 @@
 Features:
   ☐ Implement Tree-sitter-based code extraction
     ✔ Tree-sitter extraction @done(26-02-27 23:36)
-    ☐ Update prompt rendering
+    ☐ Remove duplicates
+    ✔ Update prompt rendering @done(26-03-01 01:15)
   ☐ Implement LSP-based code extraction
   ☐ Tree structure
   ☐ Integrate with linter tools

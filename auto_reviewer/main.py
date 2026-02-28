@@ -3,10 +3,12 @@
 from loguru import logger
 from unidiff import PatchSet
 
-import tree_sitter as ts
-import tree_sitter_python as tspython
-
 from auto_reviewer import config
+from auto_reviewer.ast_analysis import (
+    NodeInfo,
+    analyze_added_code,
+    extract_parent_scope,
+)
 from auto_reviewer.github import GitHubClient
 from auto_reviewer.git import (
     get_commit_author,
@@ -17,9 +19,6 @@ from auto_reviewer.git import (
 )
 from auto_reviewer.llm import call_llm
 from auto_reviewer.template import render_prompt
-
-PY_LANGUAGAE = ts.Language(tspython.language())
-parser = ts.Parser(language=PY_LANGUAGAE)
 
 
 def get_added_line_number_from_diff(diff_text: str) -> dict[str, list[int]]:
@@ -37,41 +36,6 @@ def get_added_line_number_from_diff(diff_text: str) -> dict[str, list[int]]:
         if linenos:
             results[file.path] = linenos
     return results
-
-
-MAX_LINE_WIDTH = 200
-
-
-def analyze_added_code(file_path: str, added_lineno: list[int]):
-    with open(file_path, "rb") as f:
-        code_bytes = f.read()
-    tree = parser.parse(code_bytes)
-    root_node = tree.root_node
-
-    results = []
-    for lineno in added_lineno:
-        target_line = lineno - 1
-        node = root_node.descendant_for_point_range(
-            (target_line, 0), (target_line, MAX_LINE_WIDTH)
-        )
-        assert node is not None
-        node_info = {
-            "line": lineno,
-            "type": node.type,
-            "text": node.text.decode("utf-8") if node.text else "",
-            "parent_scope": find_parent_scope(node),
-        }
-        results.append(node_info)
-    return results
-
-
-def find_parent_scope(node: ts.Node) -> ts.Node | None:
-    current = node
-    while current:
-        if current.type in ["function_definition", "class_definition"]:
-            return current
-        current = current.parent
-    return None
 
 
 def main():
@@ -111,20 +75,39 @@ def main():
         return
 
     # ====================================
-    # 2. Get lineno of each hunk
+    # 2. Get context of each hunk, including the parent block of each hunk
     # ====================================
+    added_lineno = get_added_line_number_from_diff(diff_output)
+    file_analysis: dict[str, list[NodeInfo]] = {}
+    for filename, linenos in added_lineno.items():
+        file_analysis[filename] = analyze_added_code(filename, linenos)
+
+    related_context = dict(
+        map(
+            lambda item: (item[0], extract_parent_scope(item[1])), file_analysis.items()
+        )
+    )
 
     # =========================================================================
     # 3. Render Jinja2 template
     # =========================================================================
     prompt = render_prompt(
-        template_name="simple.j2",
+        template_name="with_analysis.j2",
         diff_content=diff_output,
         commit_sha=commit_sha[:7],
         commit_author=commit_author,
         commit_message=commit_msg,
         language=config.AUTO_REVIEWER_LANGUAGE,
+        related_context=related_context,
     )
+
+    # Print full prompt in debug mode
+    if config.AUTO_REVIEWER_DEBUG:
+        print("\n" + "=" * 80)
+        print("DEBUG: FULL PROMPT CONTENT")
+        print("=" * 80)
+        print(prompt)
+        print("=" * 80 + "\n")
 
     # =========================================================================
     # 4. Call LLM API
