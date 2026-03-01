@@ -4,12 +4,16 @@ from importlib import resources
 from jinja2 import Environment, FunctionLoader
 from loguru import logger
 
+from auto_reviewer.ast_analysis import NodeInfo
+
 
 @logger.catch
 def load_prompt_resource(name: str) -> str:
     """Load Jinja2 template resource from auto_reviewer.prompts package."""
-    return resources.files("auto_reviewer.prompts").joinpath(name).read_text(
-        encoding="utf-8"
+    return (
+        resources.files("auto_reviewer.prompts")
+        .joinpath(name)
+        .read_text(encoding="utf-8")
     )
 
 
@@ -20,6 +24,7 @@ def render_prompt(
     commit_author: str,
     commit_message: str,
     language: str,
+    related_context: dict[str, list[str]],
 ) -> str:
     """
     Render prompt template with given context.
@@ -43,10 +48,8 @@ def render_prompt(
         commit_author=commit_author,
         commit_message=commit_message,
         language=language,
+        related_context=related_context,
     )
-    # Use technique from paper: Prompt Repetition Improves Non-Reasoning LLMs
-    prompt += prompt
-
     logger.debug(f"Generated prompt (length: {len(prompt)})")
     logger.debug(f"Prompt preview: {prompt[:500]}...")
     return prompt

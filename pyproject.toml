@@ -9,6 +9,12 @@ dependencies = [
     "loguru>=0.7.3",
     "openai>=2.17.0",
     "httpx>=0.28.0",
+    "tree-sitter>=0.25.2",
+    "tree-sitter-python>=0.25.0",
+    "tree-sitter-go>=0.25.0",
+    "unidiff>=0.7.5",
+    "typeguard>=4.5.1",
+    "tree-sitter-rust>=0.24.0",
 ]
 
 [project.scripts]
@@ -18,9 +24,19 @@ auto-reviewer = "auto_reviewer.main:main"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=6.0.0",
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["."]
 include = [
     "main.py",
     "prompts/*",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

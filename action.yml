@@ -28,6 +28,10 @@ inputs:
     description: "Number of commits in this push (automatically detected from GitHub context)"
     required: false
     default: ${{ github.event.push.commits.length || 1 }}
+  debug:
+    description: "Enable debug mode to print full prompt content"
+    required: false
+    default: "false"
 
 outputs:
   review_result:
@@ -44,3 +48,4 @@ runs:
     AUTO_REVIEWER_LANGUAGE: ${{ inputs.language }}
     GITHUB_TOKEN: ${{ inputs.github_token }}
     PUSH_COMMITS_COUNT: ${{ inputs.push_commits_count }}
+    AUTO_REVIEWER_DEBUG: ${{ inputs.debug }}

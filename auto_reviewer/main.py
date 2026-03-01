@@ -1,8 +1,14 @@
 """Auto Code Reviewer - Main entry point."""
 
 from loguru import logger
+from unidiff import PatchSet
 
 from auto_reviewer import config
+from auto_reviewer.ast_analysis import (
+    NodeInfo,
+    analyze_added_code,
+    extract_parent_scope,
+)
 from auto_reviewer.github import GitHubClient
 from auto_reviewer.git import (
     get_commit_author,
@@ -13,6 +19,23 @@ from auto_reviewer.git import (
 )
 from auto_reviewer.llm import call_llm
 from auto_reviewer.template import render_prompt
+
+
+def get_added_line_number_from_diff(diff_text: str) -> dict[str, list[int]]:
+    patch = PatchSet(diff_text)
+    results = {}  # result is a dict of {<FILENAME>: [LINE NUMBER ARRAY]}
+    for file in patch:
+        linenos = []
+        for hunk in file:
+            current_line_no = hunk.target_start
+            for line in hunk:
+                if line.is_added:
+                    linenos.append(current_line_no)
+                if not line.is_removed:
+                    current_line_no += 1
+        if linenos:
+            results[file.path] = linenos
+    return results
 
 
 def main():
@@ -41,27 +64,51 @@ def main():
     # Check if this is the initial commit (no parent)
     if not is_initial_commit(commit_sha):
         base_commit = f"HEAD~{config.PUSH_COMMITS_COUNT}"
-    diff_output = get_git_diff("HEAD", base_commit)
+    no_context_diff_output = get_git_diff("HEAD", base_commit)
+    rich_context_diff_output = get_git_diff("HEAD", base_commit, "-U10")
     logger.info(
         f"Got diff from {base_commit} to {commit_sha[:7]} "
         f"({config.PUSH_COMMITS_COUNT} commit(s)) by {commit_author}"
     )
 
-    if not diff_output.strip():
+    if not no_context_diff_output.strip():
         logger.info("No tracked files changed, skipping review")
         return
+
+    # ====================================
+    # 2. Get context of each hunk, including the parent block of each hunk
+    # ====================================
+    added_lineno = get_added_line_number_from_diff(no_context_diff_output)
+    file_analysis: dict[str, list[NodeInfo]] = {}
+    for filename, linenos in added_lineno.items():
+        file_analysis[filename] = analyze_added_code(filename, linenos)
+
+    related_context = dict(
+        map(
+            lambda item: (item[0], extract_parent_scope(item[1])), file_analysis.items()
+        )
+    )
 
     # =========================================================================
     # 3. Render Jinja2 template
     # =========================================================================
     prompt = render_prompt(
-        template_name="simple.j2",
-        diff_content=diff_output,
+        template_name="with_analysis.j2",
+        diff_content=rich_context_diff_output,
         commit_sha=commit_sha[:7],
         commit_author=commit_author,
         commit_message=commit_msg,
         language=config.AUTO_REVIEWER_LANGUAGE,
+        related_context=related_context,
     )
+
+    # Print full prompt in debug mode
+    if config.AUTO_REVIEWER_DEBUG:
+        print("\n" + "=" * 80)
+        print("DEBUG: FULL PROMPT CONTENT")
+        print("=" * 80)
+        print(prompt)
+        print("=" * 80 + "\n")
 
     # =========================================================================
     # 4. Call LLM API

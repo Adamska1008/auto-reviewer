@@ -20,6 +20,9 @@ FILE_PATTERNS = [pattern.strip() for pattern in _raw_patterns.split(",")]
 # Push Configuration
 PUSH_COMMITS_COUNT = int(os.getenv("PUSH_COMMITS_COUNT", "1"))
 
+# Debug Configuration
+AUTO_REVIEWER_DEBUG = os.getenv("AUTO_REVIEWER_DEBUG", "false").lower() in ("true", "1", "yes")
+
 
 def setup_logging():
     """Configure loguru logger. Should be called explicitly by main program."""

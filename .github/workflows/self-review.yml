@@ -2,9 +2,9 @@ name: Self Code Review
 
 on:
   push:
-    branches: [main, master, develop]
+    branches: [main, master, dev]
   pull_request:
-    branches: [main, master, develop]
+    branches: [main, master, dev]
 
 jobs:
   review:
@@ -17,9 +17,10 @@ jobs:
         with:
           fetch-depth: 2
 
-      - uses: Adamska1008/auto-reviewer@preview
+      - uses: Adamska1008/auto-reviewer@dev
         with:
           api_key: ${{ secrets.AUTO_REVIEWER_API_KEY }}
           base_url: "https://openrouter.ai/api/v1"
           model: "deepseek/deepseek-v3.2"
           file_patterns: "*.py"
+          debug: true
