@@ -4,11 +4,12 @@ Automatically review your code changes using LLM and post comments to commits.
 
 ## Features
 
-- Supports any LLM provider (OpenAI, OpenRouter, etc.)
-- Posts review comments directly to commits
-- Automatically handles multiple commits in a single push
-- Docker-based GitHub Action
-- Fast and lightweight
+- **Multi-language Support**: AST-based code analysis using tree-sitter for Python, Go, and Rust
+- **Rich Context Awareness**: Extracts parent scope information (functions, classes, etc.) for better review accuracy
+- **Flexible LLM Integration**: Supports any LLM provider (OpenAI, OpenRouter, etc.)
+- **Automated Workflow**: Posts review comments directly to commits
+- **Multi-commit Handling**: Automatically handles multiple commits in a single push
+- **Docker-based GitHub Action**: Fast and lightweight deployment
 
 ## Usage
 
@@ -49,21 +50,31 @@ jobs:
 
 1. Add your LLM API key and base URL to repository secrets:
    - Go to Settings → Secrets and variables → Actions
-   - Create secrets named `AUTO_REVIEWER_API_KEY` and `AUTO_REVIEWER_BASE_URL`
+   - Create secrets named `AUTO_REVIEWER_API_KEY`
 
 2. Add the workflow file to `.github/workflows/`
 
 ## Inputs
 
-| Input               | Required | Default                     | Description                                          |
-| ------------------- | -------- | --------------------------- | ---------------------------------------------------- |
-| `api_key`           | Yes      | -                           | Your LLM API key                                     |
-| `base_url`          | No       | -                           | LLM API base URL                                     |
-| `model`             | No       | `gpt-4.1`                   | LLM model to use                                     |
-| `file_patterns`     | No       | `*.py`                      | File patterns to review (comma-separated)            |
-| `language`          | No       | `Chinese`                   | Output language for review                           |
-| `github_token`      | No       | `${{ github.token }}`       | GitHub token for posting comments                    |
-| `push_commits_count` | No       | Auto-detected from push event | Number of commits in this push (automatically detected) |
+| Input                | Required | Default                       | Description                                                          |
+| -------------------- | -------- | ----------------------------- | -------------------------------------------------------------------- |
+| `api_key`            | Yes      | -                             | Your LLM API key                                                     |
+| `base_url`           | No       | -                             | LLM API base URL                                                     |
+| `model`              | No       | `gpt-4.1`                     | LLM model to use                                                     |
+| `file_patterns`      | No       | `*.py`                        | File patterns to review (comma-separated, supports *.py, *.go, *.rs) |
+| `language`           | No       | `Chinese`                     | Output language for review                                           |
+| `github_token`       | No       | `${{ github.token }}`         | GitHub token for posting comments                                    |
+| `push_commits_count` | No       | Auto-detected from push event | Number of commits in this push (automatically detected)              |
+
+## Supported Languages
+
+The reviewer uses tree-sitter for AST-based code analysis and currently supports:
+
+- **Python** (`*.py`, `*.pyi`) - Full function, class, and comprehension scope detection
+- **Go** (`*.go`) - Function, method, type, and interface scope detection
+- **Rust** (`*.rs`) - Function, struct, enum, trait, impl, and closure scope detection
+
+More languages can be easily added through the extensible language handler system.
 
 ## Development
 

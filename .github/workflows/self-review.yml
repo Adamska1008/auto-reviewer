@@ -2,9 +2,9 @@ name: Self Code Review
 
 on:
   push:
-    branches: [main, master, dev]
+    branches: [main, master, ts, lsp]
   pull_request:
-    branches: [main, master, dev]
+    branches: [main, master, ts, lsp]
 
 jobs:
   review:
@@ -17,7 +17,7 @@ jobs:
         with:
           fetch-depth: 2
 
-      - uses: Adamska1008/auto-reviewer@dev
+      - uses: Adamska1008/auto-reviewer@master
         with:
           api_key: ${{ secrets.AUTO_REVIEWER_API_KEY }}
           base_url: "https://openrouter.ai/api/v1"
