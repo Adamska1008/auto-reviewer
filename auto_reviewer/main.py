@@ -64,20 +64,21 @@ def main():
     # Check if this is the initial commit (no parent)
     if not is_initial_commit(commit_sha):
         base_commit = f"HEAD~{config.PUSH_COMMITS_COUNT}"
-    diff_output = get_git_diff("HEAD", base_commit)
+    no_context_diff_output = get_git_diff("HEAD", base_commit)
+    rich_context_diff_output = get_git_diff("HEAD", base_commit, "-U10")
     logger.info(
         f"Got diff from {base_commit} to {commit_sha[:7]} "
         f"({config.PUSH_COMMITS_COUNT} commit(s)) by {commit_author}"
     )
 
-    if not diff_output.strip():
+    if not no_context_diff_output.strip():
         logger.info("No tracked files changed, skipping review")
         return
 
     # ====================================
     # 2. Get context of each hunk, including the parent block of each hunk
     # ====================================
-    added_lineno = get_added_line_number_from_diff(diff_output)
+    added_lineno = get_added_line_number_from_diff(no_context_diff_output)
     file_analysis: dict[str, list[NodeInfo]] = {}
     for filename, linenos in added_lineno.items():
         file_analysis[filename] = analyze_added_code(filename, linenos)
@@ -93,7 +94,7 @@ def main():
     # =========================================================================
     prompt = render_prompt(
         template_name="with_analysis.j2",
-        diff_content=diff_output,
+        diff_content=rich_context_diff_output,
         commit_sha=commit_sha[:7],
         commit_author=commit_author,
         commit_message=commit_msg,
