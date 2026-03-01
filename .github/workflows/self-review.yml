@@ -2,9 +2,9 @@ name: Self Code Review
 
 on:
   push:
-    branches: [main, master, dev]
+    branches: [main, master, ts, lsp]
   pull_request:
-    branches: [main, master, dev]
+    branches: [main, master, ts, lsp]
 
 jobs:
   review:
