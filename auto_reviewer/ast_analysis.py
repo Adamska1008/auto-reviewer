@@ -1,12 +1,15 @@
-"""AST analysis utilities for code review."""
+"""AST analysis utilities for code review.
+
+This module provides tree-sitter based code analysis with multi-language support.
+It abstracts language-specific differences through the language handler system.
+"""
 
 from dataclasses import dataclass
 
 import tree_sitter as ts
-import tree_sitter_python as tspython
 
-PY_LANGUAGE = ts.Language(tspython.language())
-parser = ts.Parser(language=PY_LANGUAGE)
+from auto_reviewer.language_handlers import detect_language, LanguageHandler
+from auto_reviewer.languages import get_handler
 
 MAX_LINE_WIDTH = 200
 
@@ -26,13 +29,27 @@ def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo
     """
     Analyze added code lines using tree-sitter AST.
 
+    Automatically detects the programming language from the file extension
+    and uses the appropriate language handler.
+
     Args:
         file_path: Path to the file to analyze
         added_lineno: List of line numbers that were added
 
     Returns:
         List of NodeInfo objects containing syntax tree information
+
+    Raises:
+        ValueError: If the file language is not supported
     """
+    # Detect language and get appropriate handler
+    language = detect_language(file_path)
+    if language is None:
+        raise ValueError(f"Unsupported file type: {file_path}")
+
+    handler = get_handler(language)
+    parser = handler.get_parser()
+
     with open(file_path, "rb") as f:
         code_bytes = f.read()
     tree = parser.parse(code_bytes)
@@ -45,7 +62,7 @@ def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo
             (target_line, 0), (target_line, MAX_LINE_WIDTH)
         )
         assert node is not None
-        parent = find_parent_scope(node)
+        parent = find_parent_scope(node, handler)
         parent_text = parent.text.decode("utf-8") if parent and parent.text else ""
         node_info = NodeInfo(
             lineno,
@@ -58,19 +75,22 @@ def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo
     return results
 
 
-def find_parent_scope(node: ts.Node) -> ts.Node | None:
+def find_parent_scope(node: ts.Node, handler: LanguageHandler) -> ts.Node | None:
     """
     Find the parent scope (function or class definition) for a node.
 
+    Uses the language handler to determine which node types represent scopes.
+
     Args:
         node: The tree-sitter node to find parent scope for
+        handler: Language handler for the current file
 
     Returns:
-        Parent function or class definition node, or None if not found
+        Parent scope node, or None if not found
     """
     current = node
     while current:
-        if current.type in ["function_definition", "class_definition"]:
+        if handler.is_scope_node(current):
             return current
         current = current.parent
     return None
