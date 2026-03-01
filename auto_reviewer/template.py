@@ -50,9 +50,6 @@ def render_prompt(
         language=language,
         related_context=related_context,
     )
-    # Use technique from paper: Prompt Repetition Improves Non-Reasoning LLMs
-    prompt += prompt
-
     logger.debug(f"Generated prompt (length: {len(prompt)})")
     logger.debug(f"Prompt preview: {prompt[:500]}...")
     return prompt
