@@ -48,7 +48,7 @@ def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo
         raise ValueError(f"Unsupported file type: {file_path}")
 
     handler = get_handler(language)
-    parser = handler.get_parser()
+    parser = handler.parser
 
     with open(file_path, "rb") as f:
         code_bytes = f.read()

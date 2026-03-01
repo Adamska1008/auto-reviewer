@@ -5,7 +5,7 @@ languages, abstracting away language-specific differences in tree-sitter node ty
 parser initialization, and scope detection.
 """
 
-from abc import ABC, abstractmethod
+from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
 
@@ -29,10 +29,6 @@ class LanguageHandler(ABC):
     def __init__(self, config: LanguageConfig, parser: ts.Parser):
         self.config = config
         self.parser = parser
-
-    @abstractmethod
-    def get_parser(self) -> ts.Parser:
-        """Get the tree-sitter parser for this language."""
 
     def is_scope_node(self, node: ts.Node) -> bool:
         """Check if a node represents a scope (function, class, etc.).

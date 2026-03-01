@@ -34,10 +34,6 @@ class PythonHandler(LanguageHandler):
         parser = ts.Parser(language)
         super().__init__(config, parser)
 
-    def get_parser(self) -> ts.Parser:
-        """Get the tree-sitter parser for Python."""
-        return self.parser
-
 
 class GolangHandler(LanguageHandler):
     """Handler for Go language."""
@@ -61,10 +57,6 @@ class GolangHandler(LanguageHandler):
         language = ts.Language(ts_go.language())
         parser = ts.Parser(language)
         super().__init__(config, parser)
-
-    def get_parser(self) -> ts.Parser:
-        """Get the tree-sitter parser for Go."""
-        return self.parser
 
 
 class RustHandler(LanguageHandler):
@@ -91,10 +83,6 @@ class RustHandler(LanguageHandler):
         language = ts.Language(ts_rust.language())
         parser = ts.Parser(language)
         super().__init__(config, parser)
-
-    def get_parser(self) -> ts.Parser:
-        """Get the tree-sitter parser for Rust."""
-        return self.parser
 
 
 def get_handler(language: Language) -> LanguageHandler:
