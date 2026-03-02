@@ -35,7 +35,7 @@ def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo
 
     Args:
         file_path: Path to the file to analyze
-        added_lineno: List of line numbers that were added
+        added_lineno: List of line numbers that were added, index from 1 (for git diff output)
 
     Returns:
         List of NodeInfo objects containing syntax tree information
@@ -94,7 +94,7 @@ def find_parent_scope(node: ts.Node, handler: LanguageHandler) -> ts.Node | None
     """
     current = node
     while current:
-        if handler.is_scope_node(current) and current.type != "module":
+        if handler.is_scope_node(current):
             return current
         current = current.parent
     return None

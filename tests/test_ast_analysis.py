@@ -34,7 +34,7 @@ class TestAnalyzeAddedCode:
         self.temp_files.append(temp_path)
         return temp_path
 
-    def test_python_class_scope(self):
+    def test_python_method_scope(self):
         """Test analyzing code inside a Python class."""
         code = """class MyClass:
     def my_method(self):
@@ -47,10 +47,10 @@ class TestAnalyzeAddedCode:
         assert len(results) == 1
         info = results[0]
         assert info.lineno == 3
-        assert info.parent_scope_type == "class"
+        assert info.parent_scope_type == "function"
         assert info.parent_scope is not None
         assert info.parent_scope_text is not None
-        assert "class MyClass" in info.parent_scope_text
+        assert "def my_method(self)" in info.parent_scope_text
 
     def test_python_function_scope(self):
         """Test analyzing code inside a Python function."""
@@ -81,8 +81,7 @@ class TestAnalyzeAddedCode:
         assert len(results) == 1
         info = results[0]
         # Should find the innermost scope (the method, which is a function)
-        # Note: Currently finds method (function) inside class
-        assert info.parent_scope_type in ["function", "class"]
+        assert info.parent_scope_type == "function"
 
     def test_python_module_level(self):
         """Test analyzing code at module level (no parent scope)."""
