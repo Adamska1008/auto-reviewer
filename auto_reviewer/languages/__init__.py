@@ -23,15 +23,9 @@ class PythonHandler(LanguageHandler):
                 "function_definition",
                 "class_definition",
                 "module",
-                "lambda",
-                "list_comprehension",
-                "dict_comprehension",
-                "set_comprehension",
-                "generator_expression",
             },
             function_node_types={
                 "function_definition",
-                "lambda",
             },
             class_node_types={
                 "class_definition",
@@ -58,7 +52,6 @@ class GolangHandler(LanguageHandler):
                 "type_declaration",
                 "type_spec",
                 "interface_type",
-                "block",
             },
             function_node_types={
                 "function_declaration",
@@ -92,7 +85,6 @@ class RustHandler(LanguageHandler):
                 "trait_item",
                 "mod_item",
                 "closure_expression",
-                "block",
             },
             function_node_types={
                 "function_item",

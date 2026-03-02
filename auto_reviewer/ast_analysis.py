@@ -26,6 +26,29 @@ class NodeInfo:
     parent_scope_type: str | None = None  # 'function', 'class', 'other', or None
 
 
+def find_contained_node(
+    root: ts.Node, row: int, left: int, right: int
+) -> ts.Node | None:
+    """Find any node fully contained within a column range on a given row.
+
+    For a range of points [(row, left), (row, right)], finds the node where:
+    - left <= node.start_point.column <= node.end_point.column <= right
+    - The node has the maximum width (end_point.column - start_point.column)
+    """
+    if (
+        root.start_point.row == row
+        and root.end_point.row == row
+        and root.start_point.column >= left
+        and root.end_point.column <= right
+    ):
+        return root
+    for child in root.children:
+        node = find_contained_node(child, row, left, right)
+        if node:
+            return node
+    return None
+
+
 def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo]:
     """
     Analyze added code lines using tree-sitter AST.
@@ -59,9 +82,10 @@ def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo
     results = []
     for lineno in added_lineno:
         target_line = lineno - 1
-        node = root_node.descendant_for_point_range(
-            (target_line, 0), (target_line, MAX_LINE_WIDTH)
-        )
+        # node = root_node.descendant_for_point_range(
+        #     (target_line, 0), (target_line, MAX_LINE_WIDTH)
+        # )
+        node = find_contained_node(root_node, target_line, 0, MAX_LINE_WIDTH)
         assert node is not None
         parent = find_parent_scope(node, handler)
         parent_text = parent.text.decode("utf-8") if parent and parent.text else ""

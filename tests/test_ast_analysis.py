@@ -95,7 +95,7 @@ x = 1
         info = results[0]
         # Module level code should have no parent scope (or module scope)
         assert info.parent_scope is None or info.parent_scope.type == "module"
-        assert info.parent_scope_type is None
+        assert info.parent_scope_type == "other"
 
     def test_python_multiple_lines(self):
         """Test analyzing multiple lines in different scopes."""
@@ -120,18 +120,6 @@ def function1():
         info2 = results[1]
         assert info2.lineno == 6
         assert info2.parent_scope_type == "function"
-
-    def test_python_lambda_scope(self):
-        """Test analyzing code inside a lambda (should be function scope)."""
-        code = """my_lambda = lambda x: x + 1
-"""
-        temp_path = self.create_temp_file(code)
-        results = analyze_added_code(temp_path, [1])
-
-        assert len(results) == 1
-        info = results[0]
-        # Lambda should be classified as function
-        assert info.parent_scope_type == "function"
 
     def test_unsupported_file_type(self):
         """Test that unsupported file types raise ValueError."""
