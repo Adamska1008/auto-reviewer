@@ -23,6 +23,8 @@ class LanguageConfig:
     language: Language
     file_extensions: list[str]
     scope_node_types: set[str]
+    function_node_types: set[str]
+    class_node_types: set[str]
 
 
 class LanguageHandler(ABC):
@@ -40,6 +42,23 @@ class LanguageHandler(ABC):
             True if the node is a scope node
         """
         return node.type in self.config.scope_node_types
+
+    def get_scope_type(self, node: ts.Node) -> str | None:
+        """Classify a scope node as 'function', 'class', or 'other'.
+
+        Args:
+            node: Tree-sitter node to classify
+
+        Returns:
+            'function', 'class', 'other', or None if not a scope node
+        """
+        if node.type in self.config.function_node_types:
+            return "function"
+        elif node.type in self.config.class_node_types:
+            return "class"
+        elif node.type in self.config.scope_node_types:
+            return "other"
+        return None
 
 
 def detect_language(file_path: str) -> Language | None:

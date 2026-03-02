@@ -29,6 +29,13 @@ class PythonHandler(LanguageHandler):
                 "set_comprehension",
                 "generator_expression",
             },
+            function_node_types={
+                "function_definition",
+                "lambda",
+            },
+            class_node_types={
+                "class_definition",
+            },
         )
         language = ts.Language(tspython.language())
         parser = ts.Parser(language)
@@ -52,6 +59,14 @@ class GolangHandler(LanguageHandler):
                 "type_spec",
                 "interface_type",
                 "block",
+            },
+            function_node_types={
+                "function_declaration",
+                "method_declaration",
+            },
+            class_node_types={
+                "type_spec",
+                "interface_type",
             },
         )
         language = ts.Language(ts_go.language())
@@ -78,6 +93,16 @@ class RustHandler(LanguageHandler):
                 "mod_item",
                 "closure_expression",
                 "block",
+            },
+            function_node_types={
+                "function_item",
+                "closure_expression",
+            },
+            class_node_types={
+                "struct_item",
+                "enum_item",
+                "impl_item",
+                "trait_item",
             },
         )
         language = ts.Language(ts_rust.language())

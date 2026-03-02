@@ -11,7 +11,7 @@ import tree_sitter as ts
 from auto_reviewer.language_handlers import detect_language, LanguageHandler
 from auto_reviewer.languages import get_handler
 
-MAX_LINE_WIDTH = 200
+MAX_LINE_WIDTH = 40  # Maximum line width for finding the smallest node at a line
 
 
 @dataclass
@@ -23,6 +23,7 @@ class NodeInfo:
     text: str
     parent_scope: ts.Node | None
     parent_scope_text: str | None
+    parent_scope_type: str | None = None  # 'function', 'class', 'other', or None
 
 
 def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo]:
@@ -64,12 +65,14 @@ def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo
         assert node is not None
         parent = find_parent_scope(node, handler)
         parent_text = parent.text.decode("utf-8") if parent and parent.text else ""
+        parent_type = handler.get_scope_type(parent) if parent else None
         node_info = NodeInfo(
             lineno,
             node.type,
             node.text.decode("utf-8") if node.text else "",
             parent,
             parent_text,
+            parent_type,
         )
         results.append(node_info)
     return results
@@ -80,6 +83,7 @@ def find_parent_scope(node: ts.Node, handler: LanguageHandler) -> ts.Node | None
     Find the parent scope (function or class definition) for a node.
 
     Uses the language handler to determine which node types represent scopes.
+    Skips module-level nodes to find the actual function or class scope.
 
     Args:
         node: The tree-sitter node to find parent scope for
@@ -90,7 +94,7 @@ def find_parent_scope(node: ts.Node, handler: LanguageHandler) -> ts.Node | None
     """
     current = node
     while current:
-        if handler.is_scope_node(current):
+        if handler.is_scope_node(current) and current.type != "module":
             return current
         current = current.parent
     return None
