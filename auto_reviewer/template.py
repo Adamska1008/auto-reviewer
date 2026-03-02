@@ -4,7 +4,7 @@ from importlib import resources
 from jinja2 import Environment, FunctionLoader
 from loguru import logger
 
-from auto_reviewer.ast_analysis import NodeInfo
+from auto_reviewer.ast_analysis import CodeContext
 
 
 @logger.catch
@@ -24,7 +24,7 @@ def render_prompt(
     commit_author: str,
     commit_message: str,
     language: str,
-    related_context: dict[str, list[str]],
+    related_context: dict[str, list[CodeContext]],
 ) -> str:
     """
     Render prompt template with given context.

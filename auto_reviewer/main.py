@@ -5,9 +5,9 @@ from unidiff import PatchSet
 
 from auto_reviewer import config
 from auto_reviewer.ast_analysis import (
-    NodeInfo,
+    CodeContext,
     analyze_added_code,
-    extract_parent_scope,
+    remove_duplicate_parent_scope,
 )
 from auto_reviewer.github import GitHubClient
 from auto_reviewer.git import (
@@ -79,21 +79,20 @@ def main():
     # 2. Get context of each hunk, including the parent block of each hunk
     # ====================================
     added_lineno = get_added_line_number_from_diff(no_context_diff_output)
-    file_analysis: dict[str, list[NodeInfo]] = {}
+    file_analysis: dict[str, list[CodeContext]] = {}
     for filename, linenos in added_lineno.items():
         file_analysis[filename] = analyze_added_code(filename, linenos)
 
     related_context = dict(
         map(
-            lambda item: (item[0], extract_parent_scope(item[1])), file_analysis.items()
+            lambda item: (item[0], remove_duplicate_parent_scope(item[1])),
+            file_analysis.items(),
         )
     )
 
     # =========================================================================
-    # 3. 获取调用的函数，与引用位置信息 
+    # 3. 获取调用的函数，与引用位置信息
     # =========================================================================
-    
-
 
     # =========================================================================
     # 4. Render Jinja2 template

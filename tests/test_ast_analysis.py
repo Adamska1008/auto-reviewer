@@ -2,7 +2,7 @@
 
 import tempfile
 import os
-from auto_reviewer.ast_analysis import analyze_added_code, NodeInfo
+from auto_reviewer.ast_analysis import analyze_added_code, CodeContext
 
 
 class TestAnalyzeAddedCode:
@@ -213,14 +213,9 @@ type MyStruct struct {
 
         # Check all fields are present
         assert hasattr(info, "lineno")
-        assert hasattr(info, "type")
-        assert hasattr(info, "text")
         assert hasattr(info, "parent_scope")
-        assert hasattr(info, "parent_scope_text")
         assert hasattr(info, "parent_scope_type")
 
         # Check field values
         assert info.lineno == 2
-        assert isinstance(info.type, str)
-        assert isinstance(info.text, str)
         assert info.parent_scope_type == "function"

@@ -19,6 +19,3 @@ index 1234567..abcdefg 100644
 """
     result = get_added_line_number_from_diff(diff)
     assert result == {"example.py": [2, 3]}
-
-
-# TODO: Add more tests here

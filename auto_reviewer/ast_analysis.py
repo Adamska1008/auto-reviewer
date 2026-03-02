@@ -15,15 +15,18 @@ MAX_LINE_WIDTH = 40  # Maximum line width for finding the smallest node at a lin
 
 
 @dataclass
-class NodeInfo:
-    """Information about a syntax node and its parent scope."""
+class CodeContext:
+    """Context information for a line of code."""
 
     lineno: int
-    type: str
-    text: str
     parent_scope: ts.Node | None
-    parent_scope_text: str | None
     parent_scope_type: str | None = None  # 'function', 'class', 'other', or None
+
+    @property
+    def parent_scope_text(self) -> str | None:
+        if self.parent_scope and self.parent_scope.text:
+            return self.parent_scope.text.decode("utf-8")
+        return None
 
 
 def find_contained_node(
@@ -49,7 +52,7 @@ def find_contained_node(
     return None
 
 
-def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo]:
+def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[CodeContext]:
     """
     Analyze added code lines using tree-sitter AST.
 
@@ -88,14 +91,10 @@ def analyze_added_code(file_path: str, added_lineno: list[int]) -> list[NodeInfo
         node = find_contained_node(root_node, target_line, 0, MAX_LINE_WIDTH)
         assert node is not None
         parent = find_parent_scope(node, handler)
-        parent_text = parent.text.decode("utf-8") if parent and parent.text else ""
         parent_type = handler.get_scope_type(parent) if parent else None
-        node_info = NodeInfo(
+        node_info = CodeContext(
             lineno,
-            node.type,
-            node.text.decode("utf-8") if node.text else "",
             parent,
-            parent_text,
             parent_type,
         )
         results.append(node_info)
@@ -124,9 +123,12 @@ def find_parent_scope(node: ts.Node, handler: LanguageHandler) -> ts.Node | None
     return None
 
 
-def extract_parent_scope(infos: list[NodeInfo]) -> list[str]:
-    node_set = set()
+def remove_duplicate_parent_scope(infos: list[CodeContext]) -> list[CodeContext]:
+    new_infos = []
+    seen_scopes = set()
     for n in infos:
-        if n.parent_scope_text and n.parent_scope_text.strip():
-            node_set.add(n.parent_scope_text)
-    return list(node_set)
+        scope = n.parent_scope
+        if not scope in seen_scopes:
+            new_infos.append(n)
+            seen_scopes.add(scope)
+    return new_infos

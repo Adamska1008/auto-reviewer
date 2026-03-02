@@ -19,13 +19,13 @@ Analyze the provided `git diff` output and generate a structured review.
 ```
 
 ## Code Context (Parent Scope)
-{% for filename, parent_texts in related_context.items() %}
+{% for filename, code_contexts in related_context.items() %}
 ### {{ filename }}
 Parent scope 
 
-{% for parent_text in parent_texts %}
+{% for code_context in code_contexts %}
 ```
-{{parent_text}}
+{{code_context.parent_scope_text}}
 ```
 
 {% endfor%}
