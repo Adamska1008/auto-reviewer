@@ -11,6 +11,34 @@ Automatically review your code changes using LLM and post comments to commits.
 - **Multi-commit Handling**: Automatically handles multiple commits in a single push
 - **Docker-based GitHub Action**: Fast and lightweight deployment
 
+## Token Usage Benchmark
+
+In a five-commit end-to-end pilot, auto-reviewer used **97.45% fewer total
+tokens** than asking `pi-code-agent` to review the same commits directly.
+
+| Workflow | Input Tokens | Output Tokens | Total Tokens | Model Calls |
+| --- | ---: | ---: | ---: | ---: |
+| Auto-reviewer | 19,012 | 49,477 | 68,489 | 5 |
+| `pi-code-agent` | 2,646,744 | 39,781 | 2,686,525 | 153 |
+
+Both workflows used the same local `qwen/qwen3.5-9b@4bit` model through LM
+Studio with thinking enabled and its native 262,144-token context window. Pi
+ran in fresh sessions with repository inspection tools, and its usage was
+summed across every model turn. All runs produced non-empty reviews without
+API errors or output-limit truncation.
+
+A manual diff-by-diff quality check found auto-reviewer more relevant in three
+of the five cases and mixed results in the other two. Auto-reviewer followed
+the requested output format in three cases versus zero for Pi, but both
+workflows produced some false positives. The pilot therefore shows a large
+token reduction without an obvious quality collapse; it does not establish
+formal precision, recall, or quality equivalence.
+
+This is a single-run pilot on five historical Python commits in this
+repository, not a cross-repository quality or performance claim. See the
+[full benchmark report](benchmarks/RESULTS.md) for per-commit results,
+methodology, limitations, and reproduction commands.
+
 ## Usage
 
 ### Basic Example
